@@ -1,0 +1,230 @@
+实验四
+
+子函数：
+
+%高斯滤波器
+function P=GaussFilter(pic,sigm,k) %pic为输入图像,sigm为标准差 k为滤波模板大小
+%生成高斯滤波器木板
+Gauss=zeros(k,k);
+for i=1:k
+    for j=1:k
+        numerator=double(-(i-(k+1)/2)^2-(j-(k+1)/2)^2);
+        Gauss(i,j)=(exp(numerator/2/sigm^2))/(2*pi)/sigm;
+    end
+end
+gauss=Gauss./sum(Gauss(:));
+%高斯滤波
+[row,column]=size(pic);
+P=zeros(row,column);
+p=zeros(row+k-1,column+k-1);
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        p(i,j)=pic(i-(k-1)/2,j-(k-1)/2);
+    end
+end
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        sample=zeros(k,k);
+        for h=1:k
+            for l=1:k
+                sample(h,l)=p(i-(k+1)/2+h,j-(k+1)/2+l);
+            end
+        end
+        sample=gauss.*sample;
+        P(i-(k-1)/2,j-(k-1)/2)=round(sum(sample(:)));
+    end
+end
+figure
+imshow(P,[0,255]);
+
+
+%中值滤波器
+
+function P=MedianFilter(pic,k) %pic为输入图像 k为滤波模板大小
+[row,column]=size(pic);
+P=zeros(row,column);
+p=zeros(row+k-1,column+k-1);
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        p(i,j)=pic(i-(k-1)/2,j-(k-1)/2);
+    end
+end
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+       X=zeros(1,k^2);
+       for m=1:k^2
+           t1=floor((m-1)/k)-(k-1)/2;
+           t2=rem((m-1),k)-(k-1)/2;
+           X(m)=p(i+t1,j+t2);
+       end
+       P(i-(k-1)/2,j-(k-1)/2)=median(X);
+    end
+end
+figure
+imshow(P,[0,255])
+
+
+%均值滤波器
+
+function P=MeanFilter(pic,k)%待平滑滤波的图像，k为采用的领域大小
+[row,column]=size(pic);
+P=zeros(row,column);
+p=zeros(row+k-1,column+k-1);
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        p(i,j)=pic(i-(k-1)/2,j-(k-1)/2);
+    end
+end
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+       sample=zeros(k,k);
+       for h=1:k
+            for l=1:k
+                sample(h,l)=p(i-(k+1)/2+h,j-(k+1)/2+l);
+            end
+        end
+       P(i-(k-1)/2,j-(k-1)/2)=round(1/k^2*sum(sample(:)));
+    end
+end
+figure
+imshow(P,[0,255])
+
+%图像非锐化处理
+
+function P=UnsharpMask(pic,k)%k为平滑滤波的模板大小
+p=MeanFilter(pic,k);
+P=double(pic)-p;
+imshow(P,[0,255])
+
+%sobel边缘检测
+function P=SobelEdge(pic)
+k=3;
+sobel=[-1 -2 -1; 0 0 0; 1 2 1];
+[row,column]=size(pic);
+P=zeros(row,column);
+p=zeros(row+k-1,column+k-1);
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        p(i,j)=pic(i-(k-1)/2,j-(k-1)/2);
+    end
+end
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+       sample=zeros(k,k);
+       sample_a=zeros(k,k);
+       sample_b=zeros(k,k);
+       for h=1:k
+            for l=1:k
+                sample(h,l)=p(i-(k+1)/2+h,j-(k+1)/2+l);
+            end
+        end
+       sample_a=sobel.*sample;
+       sample_b=sobel'.*sample;
+       ans1=abs(sum(sample_a(:)));
+       ans2=abs(sum(sample_b(:)));
+        P(i-(k-1)/2,j-(k-1)/2)=round(ans1+ans2);
+    end
+end
+figure
+imshow(P,[0,255])
+
+%laplace边缘检测
+
+function P=LaplaceEdge(pic)
+k=3;
+Laplace=[-1 -1 -1; -1 8 -1; -1 -1 -1];
+[row,column]=size(pic);
+P=zeros(row,column);
+p=zeros(row+k-1,column+k-1);
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+        p(i,j)=pic(i-(k-1)/2,j-(k-1)/2);
+    end
+end
+for i=1+(k-1)/2:row+(k-1)/2
+    for j=1+(k-1)/2:column+(k-1)/2
+       sample=zeros(k,k);
+       for h=1:k
+            for l=1:k
+                sample(h,l)=p(i-(k+1)/2+h,j-(k+1)/2+l);
+            end
+        end
+       sample=Laplace.*sample;
+        P(i-(k-1)/2,j-(k-1)/2)=round(sum(sample(:)));
+    end
+end
+figure
+imshow(P,[0,255])
+
+%canny边缘检测
+
+function P=CannyEdge(pic)
+BW1 = edge(pic,'canny'); 
+figure
+imshow(BW1); 
+
+主函数：
+
+%问题1
+
+pic1=imread('D:\数字图像作业\第四次作业\test1.pgm');
+pic2=imread('D:\数字图像作业\第四次作业\test2.tif');
+figure
+imshow(pic1,[0,255])
+title('原图test1')
+MedianFilter(pic1,3);
+title('test1中值滤波，3')
+MedianFilter(pic1,5);
+title('test1中值滤波，5')
+MedianFilter(pic1,7);
+title('test1中值滤波，7')
+GaussFilter(pic1,sqrt(1.5),3);
+title('test1高斯滤波，3')
+GaussFilter(pic1,sqrt(1.5),5);
+title('test1高斯滤波，5')
+GaussFilter(pic1,sqrt(1.5),7);
+title('test1高斯滤波，7')
+figure
+imshow(pic2,[0,255])
+title('原图test2')
+MedianFilter(pic2,3);
+title('test1中值滤波，3')
+MedianFilter(pic2,5);
+title('test1中值滤波，5')
+MedianFilter(pic2,7);
+title('test1中值滤波，7')
+GaussFilter(pic2,sqrt(1.5),3);
+title('test1高斯滤波，3')
+GaussFilter(pic2,sqrt(1.5),5);
+title('test1高斯滤波，5')
+GaussFilter(pic2,sqrt(1.5),7);
+title('test1高斯滤波，7')%MedianFilter(P,7)
+
+%问题2
+
+pic3=imread('D:\数字图像作业\第四次作业\test3_corrupt.pgm');
+pic4=imread('D:\数字图像作业\第四次作业\test4 copy.bmp');
+figure
+imshow(pic3,[0,255])
+title('原图test3')
+UnsharpMask(pic3,7);
+title('Unsharp Masking test3')
+SobelEdge(pic3);
+title('Sobel edge detector test3')
+LaplaceEdge(pic3);
+title('Laplace edge detection test3')
+CannyEdge(pic3);
+title('Canny algorithm test3')
+
+figure
+imshow(pic4,[0,255])
+title('原图test4')
+UnsharpMask(pic4,7);
+title('Unsharp Masking test4')
+SobelEdge(pic4);
+title('Sobel edge detector test4')
+LaplaceEdge(pic4);
+title('Laplace edge detection test4')
+CannyEdge(pic4);
+title('Canny algorithm test4')
+
